@@ -1,0 +1,66 @@
+services:
+  database:
+    image: postgis/postgis:17-3.5-alpine
+    environment:
+      POSTGRES_DB: floodsense
+      POSTGRES_USER: floodsense
+      POSTGRES_PASSWORD: floodsense
+    volumes:
+      - floodsense_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U floodsense"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  backend:
+    build: ./backend
+    environment:
+      DATABASE_URL: postgresql://floodsense:floodsense@database:5432/floodsense
+      PORT: 3001
+      CLIENT_ORIGINS: http://localhost:5173,http://127.0.0.1:5173
+    ports:
+      - "3001:3001"
+    depends_on:
+      river-importer:
+        condition: service_completed_successfully
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O - http://localhost:3001/api/health >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  river-importer:
+    build: ./backend
+    command: npm run import:rivers
+    environment:
+      DATABASE_URL: postgresql://floodsense:floodsense@database:5432/floodsense
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: "no"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:3001
+        VITE_MAPBOX_TOKEN: ${MAPBOX_PUBLIC_TOKEN:-}
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+
+  simulator:
+    build: ./backend
+    command: npm run simulator
+    environment:
+      API_URL: http://backend:3001
+      SIMULATOR_INTERVAL_MS: 3000
+    depends_on:
+      backend:
+        condition: service_healthy
+
+volumes:
+  floodsense_data:

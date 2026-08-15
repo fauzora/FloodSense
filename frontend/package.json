@@ -1,0 +1,24 @@
+{
+  "name": "floodsense-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "echarts": "^6.1.0",
+    "lucide-vue-next": "^0.468.0",
+    "mapbox-gl": "^3.25.0",
+    "socket.io-client": "^4.8.1",
+    "vite": "^7.1.2",
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17"
+  }
+}

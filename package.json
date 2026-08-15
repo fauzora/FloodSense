@@ -1,0 +1,12 @@
+{
+  "name": "floodsense",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n API,WEB -c cyan,magenta \"npm --prefix backend run dev\" \"npm --prefix frontend run dev\"",
+    "test": "npm --prefix backend test && npm --prefix frontend run build",
+    "simulator": "npm --prefix backend run simulator"
+  },
+  "devDependencies": {
+    "concurrently": "^9.2.1"
+  }
+}
