@@ -8,14 +8,14 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@headlessui/vue": "^1.7.23",
     "@vitejs/plugin-vue": "^6.0.1",
     "echarts": "^6.1.0",
     "lucide-vue-next": "^0.468.0",
     "mapbox-gl": "^3.25.0",
     "socket.io-client": "^4.8.1",
     "vite": "^7.1.2",
-    "vue": "^3.5.18",
-    "vuetify": "^4.1.9"
+    "vue": "^3.5.18"
   },
   "devDependencies": {
     "autoprefixer": "^10.4.21",

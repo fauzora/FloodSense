@@ -1,6 +1,7 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { Maximize2, Minimize2, Settings2, X } from "lucide-vue-next";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
+import { Listbox, ListboxButton, ListboxLabel, ListboxOption, ListboxOptions, Switch } from "@headlessui/vue";
+import { Check, ChevronDown, Maximize2, Minimize2, Settings2, X } from "lucide-vue-next";
 import * as mapboxgl from "mapbox-gl/esm";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -18,6 +19,10 @@ const mapError = ref("");
 const riverStats = ref(null);
 const regions = ref([]);
 const selectedRegion = ref("DKI Jakarta");
+const regionOptions = computed(() => [
+  { name: "Semua daerah", value: "" },
+  ...regions.value.map((region) => ({ name: region.name, value: region.name })),
+]);
 const settingsOpen = ref(false);
 const showRivers = ref(true);
 const showRiverLabels = ref(true);
@@ -395,20 +400,26 @@ onBeforeUnmount(() => {
         rel="noreferrer"
       >Sumber: Rupabumi Indonesia · BIG ↗</a>
     </div>
-    <label class="absolute right-14 top-20 z-20">
-      <span class="sr-only">Filter daerah</span>
-      <select
-        v-model="selectedRegion"
-        class="h-9 w-44 cursor-pointer rounded-lg border px-3 text-xs font-semibold shadow-lg outline-none transition"
-        :class="selectedRegion ? 'border-cyan bg-cyan text-[#06202b]' : 'border-line bg-ink/95 text-slate-300 hover:border-cyan/50'"
-        aria-label="Filter daerah"
-      >
-        <option value="">Semua daerah</option>
-        <option v-for="region in regions" :key="region.name" :value="region.name">
-          {{ region.name }}
-        </option>
-      </select>
-    </label>
+    <Listbox v-model="selectedRegion" as="div" class="absolute right-14 top-20 z-30 w-52">
+      <ListboxLabel class="sr-only">Filter daerah</ListboxLabel>
+      <div class="relative">
+        <ListboxButton class="flex h-10 w-full items-center gap-2.5 rounded-xl border border-line bg-[#07101c]/95 px-3 text-left text-xs font-semibold text-slate-200 shadow-xl backdrop-blur transition hover:border-cyan/50 focus:border-cyan/70 focus:outline-none focus:ring-2 focus:ring-cyan/15">
+          <span class="h-2 w-2 shrink-0 rounded-full" :class="selectedRegion ? 'bg-cyan shadow-[0_0_10px_#27d8e8]' : 'bg-slate-600'" />
+          <span class="min-w-0 flex-1 truncate">{{ selectedRegion || "Semua daerah" }}</span>
+          <ChevronDown class="shrink-0 text-slate-500" :size="15" />
+        </ListboxButton>
+        <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="scale-95 opacity-0" enter-to-class="scale-100 opacity-100" leave-active-class="transition duration-75 ease-in" leave-from-class="scale-100 opacity-100" leave-to-class="scale-95 opacity-0">
+          <ListboxOptions class="absolute right-0 mt-2 max-h-64 w-full origin-top-right overflow-auto rounded-xl border border-line bg-[#07101c]/95 p-1.5 text-xs shadow-2xl backdrop-blur-xl focus:outline-none">
+            <ListboxOption v-for="region in regionOptions" :key="region.value || 'all'" v-slot="{ active, selected }" :value="region.value" as="template">
+              <li class="flex cursor-pointer select-none items-center gap-2.5 rounded-lg px-3 py-2.5 transition" :class="active ? 'bg-white/[.07] text-white' : 'text-slate-400'">
+                <span class="min-w-0 flex-1 truncate" :class="selected && 'font-semibold text-cyan'">{{ region.name }}</span>
+                <Check v-if="selected" class="shrink-0 text-cyan" :size="15" />
+              </li>
+            </ListboxOption>
+          </ListboxOptions>
+        </Transition>
+      </div>
+    </Listbox>
     <button
       class="absolute right-3 top-20 z-20 grid h-9 w-9 place-items-center rounded-lg border border-line bg-ink/90 text-slate-300 shadow-lg backdrop-blur transition hover:border-cyan/50 hover:text-cyan"
       type="button"
@@ -469,14 +480,14 @@ onBeforeUnmount(() => {
           </div>
 
           <div class="divide-y divide-line rounded-xl border border-line bg-[#0b1725] px-4">
-            <label class="flex cursor-pointer items-center justify-between py-3.5 text-xs font-medium text-slate-300">
-              Geometri sungai RBI
-              <input v-model="showRivers" type="checkbox" class="map-switch" />
-            </label>
-            <label class="flex cursor-pointer items-center justify-between py-3.5 text-xs font-medium text-slate-300">
-              Nama sungai
-              <input v-model="showRiverLabels" type="checkbox" class="map-switch" :disabled="!showRivers" />
-            </label>
+            <div class="flex items-center justify-between py-3.5 text-xs font-medium text-slate-300">
+              <span>Geometri sungai RBI</span>
+              <Switch v-model="showRivers" class="relative inline-flex h-5 w-9 items-center rounded-full transition" :class="showRivers ? 'bg-cyan' : 'bg-slate-700'"><span class="inline-block h-3.5 w-3.5 rounded-full bg-white transition" :class="showRivers ? 'translate-x-[18px]' : 'translate-x-[3px]'" /></Switch>
+            </div>
+            <div class="flex items-center justify-between py-3.5 text-xs font-medium text-slate-300" :class="!showRivers && 'opacity-40'">
+              <span>Nama sungai</span>
+              <Switch v-model="showRiverLabels" :disabled="!showRivers" class="relative inline-flex h-5 w-9 items-center rounded-full transition" :class="showRiverLabels && showRivers ? 'bg-cyan' : 'bg-slate-700'"><span class="inline-block h-3.5 w-3.5 rounded-full bg-white transition" :class="showRiverLabels && showRivers ? 'translate-x-[18px]' : 'translate-x-[3px]'" /></Switch>
+            </div>
             <label class="block py-3.5 text-xs font-medium text-slate-300">
               <span class="mb-2 flex items-center justify-between">
                 Opasitas sungai
@@ -492,10 +503,10 @@ onBeforeUnmount(() => {
                 :disabled="!showRivers"
               />
             </label>
-            <label class="flex cursor-pointer items-center justify-between py-3.5 text-xs font-medium text-slate-300">
-              Node sensor
-              <input v-model="showSensors" type="checkbox" class="map-switch" />
-            </label>
+            <div class="flex items-center justify-between py-3.5 text-xs font-medium text-slate-300">
+              <span>Node sensor</span>
+              <Switch v-model="showSensors" class="relative inline-flex h-5 w-9 items-center rounded-full transition" :class="showSensors ? 'bg-cyan' : 'bg-slate-700'"><span class="inline-block h-3.5 w-3.5 rounded-full bg-white transition" :class="showSensors ? 'translate-x-[18px]' : 'translate-x-[3px]'" /></Switch>
+            </div>
           </div>
 
           <button
@@ -534,6 +545,4 @@ onBeforeUnmount(() => {
 .river-marker { width: 18px; height: 18px; padding: 0; border: 4px solid #07101c; border-radius: 999px; background: var(--marker-color); box-shadow: 0 0 18px var(--marker-color); cursor: pointer; }
 .river-marker[data-selected="true"] { width: 24px; height: 24px; outline: 2px solid var(--marker-color); outline-offset: 3px; }
 .map-command-center:fullscreen { min-height: 100vh; border-radius: 0; }
-.map-switch { width: 34px; height: 18px; cursor: pointer; accent-color: #67e8f9; }
-.map-switch:disabled { cursor: not-allowed; opacity: .4; }
 </style>
