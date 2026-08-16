@@ -1,6 +1,10 @@
 <script setup>
 import { onBeforeUnmount, onMounted, ref, watch } from "vue";
-import { Maximize2, Minimize2, Settings2, X } from "lucide-vue-next";
+import {
+  Dialog, DialogPanel, DialogTitle, Listbox, ListboxButton, ListboxOption,
+  ListboxOptions, RadioGroup, RadioGroupOption, Switch,
+} from "@headlessui/vue";
+import { Check, ChevronDown, Maximize2, Minimize2, Settings2, X } from "lucide-vue-next";
 import * as mapboxgl from "mapbox-gl/esm";
 import "mapbox-gl/dist/mapbox-gl.css";
 
@@ -395,20 +399,28 @@ onBeforeUnmount(() => {
         rel="noreferrer"
       >Sumber: Rupabumi Indonesia · BIG ↗</a>
     </div>
-    <label class="absolute right-14 top-20 z-20">
-      <span class="sr-only">Filter daerah</span>
-      <select
-        v-model="selectedRegion"
-        class="h-9 w-44 cursor-pointer rounded-lg border px-3 text-xs font-semibold shadow-lg outline-none transition"
-        :class="selectedRegion ? 'border-cyan bg-cyan text-[#06202b]' : 'border-line bg-ink/95 text-slate-300 hover:border-cyan/50'"
+    <Listbox v-model="selectedRegion" as="div" class="absolute right-14 top-20 z-30 w-48">
+      <ListboxButton
+        class="flex h-10 w-full items-center justify-between gap-2 rounded-xl border px-3 text-left text-xs font-semibold shadow-xl outline-none transition focus:ring-2 focus:ring-cyan/25"
+        :class="selectedRegion ? 'border-cyan bg-cyan text-[#06202b]' : 'border-line bg-[#07101c] text-slate-300 hover:border-cyan/50'"
         aria-label="Filter daerah"
       >
-        <option value="">Semua daerah</option>
-        <option v-for="region in regions" :key="region.name" :value="region.name">
-          {{ region.name }}
-        </option>
-      </select>
-    </label>
+        <span class="truncate">{{ selectedRegion || "Semua daerah" }}</span>
+        <ChevronDown :size="15" class="shrink-0" aria-hidden="true" />
+      </ListboxButton>
+      <ListboxOptions class="absolute right-0 mt-2 max-h-64 w-full overflow-auto rounded-xl border border-line bg-[#07101c] p-1.5 text-xs shadow-2xl outline-none">
+        <ListboxOption v-slot="{ active, selected }" value="" as="template">
+          <li class="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 font-medium" :class="active ? 'bg-cyan text-[#06202b]' : selected ? 'bg-[#10283a] text-cyan' : 'text-slate-300'">
+            <span>Semua daerah</span><Check v-if="selected" :size="14" />
+          </li>
+        </ListboxOption>
+        <ListboxOption v-for="region in regions" :key="region.name" v-slot="{ active, selected }" :value="region.name" as="template">
+          <li class="flex cursor-pointer items-center justify-between rounded-lg px-3 py-2.5 font-medium" :class="active ? 'bg-cyan text-[#06202b]' : selected ? 'bg-[#10283a] text-cyan' : 'text-slate-300'">
+            <span class="truncate">{{ region.name }}</span><Check v-if="selected" :size="14" />
+          </li>
+        </ListboxOption>
+      </ListboxOptions>
+    </Listbox>
     <button
       class="absolute right-3 top-20 z-20 grid h-9 w-9 place-items-center rounded-lg border border-line bg-ink/90 text-slate-300 shadow-lg backdrop-blur transition hover:border-cyan/50 hover:text-cyan"
       type="button"
@@ -419,19 +431,14 @@ onBeforeUnmount(() => {
       <Settings2 :size="17" />
     </button>
 
-    <div
-      v-if="settingsOpen"
-      class="absolute inset-0 z-40 grid place-items-center bg-[#020711]/75 p-4 backdrop-blur-sm"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="map-settings-title"
-      @click.self="settingsOpen = false"
-    >
-      <section class="w-full max-w-md overflow-hidden rounded-2xl border border-line bg-[#07101c] shadow-2xl">
+    <Dialog :open="settingsOpen" class="absolute inset-0 z-40" @close="settingsOpen = false">
+      <div class="absolute inset-0 bg-[#020711]/75 backdrop-blur-sm" aria-hidden="true" />
+      <div class="absolute inset-0 grid place-items-center overflow-y-auto p-4">
+      <DialogPanel class="w-full max-w-md overflow-hidden rounded-2xl border border-line bg-[#07101c] shadow-2xl">
         <header class="flex items-start justify-between border-b border-line px-5 py-4">
           <div>
             <div class="eyebrow">Command Center</div>
-            <h2 id="map-settings-title" class="mt-1 text-base font-semibold text-white">Pengaturan Peta</h2>
+            <DialogTitle class="mt-1 text-base font-semibold text-white">Pengaturan Peta</DialogTitle>
             <p class="mt-1 text-xs text-slate-400">Atur tampilan operasional tanpa memuat ulang dashboard.</p>
           </div>
           <button class="rounded-lg p-2 text-slate-400 hover:bg-white/5 hover:text-white" type="button" aria-label="Tutup pengaturan" @click="settingsOpen = false">
@@ -442,41 +449,39 @@ onBeforeUnmount(() => {
         <div class="space-y-5 p-5">
           <div>
             <div class="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Tampilan satelit</div>
-            <div class="grid grid-cols-2 gap-2 rounded-xl bg-[#0b1725] p-1">
-              <button
+            <RadioGroup v-model="lightPreset" class="grid grid-cols-2 gap-2 rounded-xl bg-[#0b1725] p-1">
+              <RadioGroupOption
                 v-for="preset in [{ value: 'day', label: 'Terang' }, { value: 'night', label: 'Malam' }]"
                 :key="preset.value"
-                class="rounded-lg px-3 py-2 text-xs font-semibold transition"
-                :class="lightPreset === preset.value ? 'bg-cyan text-[#06202b]' : 'text-slate-400 hover:text-white'"
-                type="button"
-                @click="lightPreset = preset.value"
-              >{{ preset.label }}</button>
-            </div>
+                v-slot="{ checked }"
+                :value="preset.value"
+                as="template"
+              ><button class="rounded-lg px-3 py-2 text-xs font-semibold outline-none transition focus:ring-2 focus:ring-cyan/25" :class="checked ? 'bg-cyan text-[#06202b]' : 'text-slate-400 hover:text-white'" type="button">{{ preset.label }}</button></RadioGroupOption>
+            </RadioGroup>
           </div>
 
           <div>
             <div class="mb-2 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Fokus wilayah</div>
-            <div class="grid grid-cols-2 gap-2">
-              <button
+            <RadioGroup v-model="focusArea" class="grid grid-cols-2 gap-2">
+              <RadioGroupOption
                 v-for="area in [{ value: 'indonesia', label: 'Indonesia' }, { value: 'java', label: 'Pulau Jawa' }]"
                 :key="area.value"
-                class="rounded-lg border px-3 py-2.5 text-xs font-semibold transition"
-                :class="focusArea === area.value ? 'border-cyan bg-cyan text-[#06202b]' : 'border-line text-slate-400 hover:text-white'"
-                type="button"
-                @click="selectedRegion = ''; focusArea = area.value"
-              >{{ area.label }}</button>
-            </div>
+                v-slot="{ checked }"
+                :value="area.value"
+                as="template"
+              ><button class="rounded-lg border px-3 py-2.5 text-xs font-semibold outline-none transition focus:ring-2 focus:ring-cyan/25" :class="checked ? 'border-cyan bg-cyan text-[#06202b]' : 'border-line text-slate-400 hover:text-white'" type="button" @click="selectedRegion = ''">{{ area.label }}</button></RadioGroupOption>
+            </RadioGroup>
           </div>
 
           <div class="divide-y divide-line rounded-xl border border-line bg-[#0b1725] px-4">
-            <label class="flex cursor-pointer items-center justify-between py-3.5 text-xs font-medium text-slate-300">
+            <div class="flex items-center justify-between py-3.5 text-xs font-medium text-slate-300">
               Geometri sungai RBI
-              <input v-model="showRivers" type="checkbox" class="map-switch" />
-            </label>
-            <label class="flex cursor-pointer items-center justify-between py-3.5 text-xs font-medium text-slate-300">
+              <Switch v-model="showRivers" class="relative inline-flex h-5 w-9 items-center rounded-full outline-none transition focus:ring-2 focus:ring-cyan/30" :class="showRivers ? 'bg-cyan' : 'bg-slate-700'"><span class="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition" :class="showRivers ? 'translate-x-[18px]' : 'translate-x-[3px]'" /></Switch>
+            </div>
+            <div class="flex items-center justify-between py-3.5 text-xs font-medium" :class="showRivers ? 'text-slate-300' : 'text-slate-600'">
               Nama sungai
-              <input v-model="showRiverLabels" type="checkbox" class="map-switch" :disabled="!showRivers" />
-            </label>
+              <Switch v-model="showRiverLabels" :disabled="!showRivers" class="relative inline-flex h-5 w-9 items-center rounded-full outline-none transition focus:ring-2 focus:ring-cyan/30 disabled:cursor-not-allowed disabled:opacity-40" :class="showRiverLabels ? 'bg-cyan' : 'bg-slate-700'"><span class="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition" :class="showRiverLabels ? 'translate-x-[18px]' : 'translate-x-[3px]'" /></Switch>
+            </div>
             <label class="block py-3.5 text-xs font-medium text-slate-300">
               <span class="mb-2 flex items-center justify-between">
                 Opasitas sungai
@@ -492,10 +497,10 @@ onBeforeUnmount(() => {
                 :disabled="!showRivers"
               />
             </label>
-            <label class="flex cursor-pointer items-center justify-between py-3.5 text-xs font-medium text-slate-300">
+            <div class="flex items-center justify-between py-3.5 text-xs font-medium text-slate-300">
               Node sensor
-              <input v-model="showSensors" type="checkbox" class="map-switch" />
-            </label>
+              <Switch v-model="showSensors" class="relative inline-flex h-5 w-9 items-center rounded-full outline-none transition focus:ring-2 focus:ring-cyan/30" :class="showSensors ? 'bg-cyan' : 'bg-slate-700'"><span class="inline-block h-3.5 w-3.5 rounded-full bg-white shadow transition" :class="showSensors ? 'translate-x-[18px]' : 'translate-x-[3px]'" /></Switch>
+            </div>
           </div>
 
           <button
@@ -508,8 +513,9 @@ onBeforeUnmount(() => {
             {{ isFullscreen ? "Keluar Fullscreen" : "Buka Fullscreen Command Center" }}
           </button>
         </div>
-      </section>
-    </div>
+      </DialogPanel>
+      </div>
+    </Dialog>
 
     <div class="pointer-events-none absolute bottom-5 left-5 flex gap-4 rounded-lg border border-line bg-ink/90 px-4 py-3 text-[10px] backdrop-blur">
       <span class="flex items-center gap-2"><i class="h-0.5 w-5 bg-cyan" />Sungai RBI</span>
@@ -534,6 +540,4 @@ onBeforeUnmount(() => {
 .river-marker { width: 18px; height: 18px; padding: 0; border: 4px solid #07101c; border-radius: 999px; background: var(--marker-color); box-shadow: 0 0 18px var(--marker-color); cursor: pointer; }
 .river-marker[data-selected="true"] { width: 24px; height: 24px; outline: 2px solid var(--marker-color); outline-offset: 3px; }
 .map-command-center:fullscreen { min-height: 100vh; border-radius: 0; }
-.map-switch { width: 34px; height: 18px; cursor: pointer; accent-color: #67e8f9; }
-.map-switch:disabled { cursor: not-allowed; opacity: .4; }
 </style>

@@ -1,7 +1,6 @@
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, ref } from "vue";
 import { io } from "socket.io-client";
-import { VBtn, VTextField } from "vuetify/components";
 import RiverMap from "./components/RiverMap.vue";
 import TelemetryChart from "./components/TelemetryChart.vue";
 import {
@@ -239,12 +238,26 @@ onBeforeUnmount(() => socket?.disconnect());
             <section class="card p-5">
               <div class="flex items-center gap-3"><SlidersHorizontal class="text-cyan" :size="20"/><div><h2 class="font-semibold text-white">Risk Thresholds</h2><p class="text-xs text-slate-500">Disimpan di PostgreSQL dan dipakai pembacaan sensor berikutnya.</p></div></div>
               <div class="mt-5 grid gap-3 sm:grid-cols-2">
-                <VTextField v-model.number="thresholdDraft.warning_cm" label="Waspada mulai" suffix="cm" type="number" min="1" max="999" variant="outlined" density="comfortable" color="cyan-accent-2" bg-color="#07101d" hide-details="auto" />
-                <VTextField v-model.number="thresholdDraft.danger_cm" label="Bahaya mulai" suffix="cm" type="number" min="2" max="1000" variant="outlined" density="comfortable" color="cyan-accent-2" bg-color="#07101d" hide-details="auto" />
+                <label class="block">
+                  <span class="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Waspada mulai</span>
+                  <span class="relative block">
+                    <input v-model.number="thresholdDraft.warning_cm" class="h-11 w-full rounded-xl border border-line bg-[#07101d] px-3 pr-11 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan focus:ring-2 focus:ring-cyan/15" type="number" min="1" max="999" />
+                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-500">cm</span>
+                  </span>
+                </label>
+                <label class="block">
+                  <span class="mb-2 block text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-500">Bahaya mulai</span>
+                  <span class="relative block">
+                    <input v-model.number="thresholdDraft.danger_cm" class="h-11 w-full rounded-xl border border-line bg-[#07101d] px-3 pr-11 text-sm font-semibold text-white outline-none transition placeholder:text-slate-600 focus:border-cyan focus:ring-2 focus:ring-cyan/15" type="number" min="2" max="1000" />
+                    <span class="pointer-events-none absolute inset-y-0 right-3 flex items-center text-xs text-slate-500">cm</span>
+                  </span>
+                </label>
               </div>
               <div class="mt-3 rounded-lg border border-line bg-white/[.02] p-3 text-[11px] text-slate-400">Normal &lt; {{ thresholdDraft.warning_cm }} cm · Waspada {{ thresholdDraft.warning_cm }}–{{ thresholdDraft.danger_cm - 1 }} cm · Bahaya ≥ {{ thresholdDraft.danger_cm }} cm</div>
               <p v-if="thresholdMessage" class="mt-3 text-xs" :class="thresholdMessage.includes('tersimpan') ? 'text-emerald-400' : 'text-rose-400'">{{ thresholdMessage }}</p>
-              <VBtn class="mt-4" block color="cyan-accent-2" variant="flat" :loading="thresholdSaving" :disabled="thresholdSaving" @click="saveThresholds">Simpan Threshold</VBtn>
+              <button class="mt-4 w-full rounded-xl bg-cyan px-4 py-3 text-xs font-bold text-[#06202b] shadow-[0_8px_24px_rgba(39,216,232,.16)] transition hover:bg-cyan/90 disabled:cursor-wait disabled:opacity-60" type="button" :disabled="thresholdSaving" @click="saveThresholds">
+                {{ thresholdSaving ? "Menyimpan…" : "Simpan Threshold" }}
+              </button>
             </section>
             <section class="card p-5"><div class="flex items-center gap-3"><Database class="text-cyan" :size="20"/><div><h2 class="font-semibold text-white">Data Pipeline</h2><p class="text-xs text-slate-500">Service connectivity</p></div></div><div class="mt-5 space-y-4 text-xs"><div class="flex items-center justify-between border-b border-line pb-3"><span class="text-slate-500">REST API</span><span class="text-emerald-400">Online · :3001</span></div><div class="flex items-center justify-between border-b border-line pb-3"><span class="text-slate-500">Realtime channel</span><span :class="connected ? 'text-emerald-400' : 'text-amber-300'">{{ connected ? 'Socket.io connected' : 'Waiting for backend' }}</span></div><div class="flex items-center justify-between border-b border-line pb-3"><span class="text-slate-500">Database</span><span class="text-cyan">PostgreSQL</span></div><div class="flex items-center justify-between"><span class="text-slate-500">Retention</span><span class="text-white">All historical readings</span></div></div></section>
           </div>
