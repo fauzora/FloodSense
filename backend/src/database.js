@@ -283,7 +283,9 @@ export function createDatabase(connectionString = process.env.DATABASE_URL) {
         mask: {
           type: "Feature",
           properties: {},
-          geometry: JSON.parse(maskResult.rows[0].geometry),
+          geometry: maskResult.rows[0]?.geometry
+            ? JSON.parse(maskResult.rows[0].geometry)
+            : null,
         },
         filterable: features
           .filter((feature) => feature.properties.filterable)

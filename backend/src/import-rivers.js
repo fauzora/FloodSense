@@ -184,11 +184,10 @@ async function runImport() {
 
   try {
     await pool.query(`
-      DROP TABLE IF EXISTS river_segments_stage;
-      CREATE UNLOGGED TABLE river_segments_stage
+      CREATE UNLOGGED TABLE IF NOT EXISTS river_segments_stage
         (LIKE river_segments INCLUDING DEFAULTS);
-      ALTER TABLE river_segments_stage
-        ADD PRIMARY KEY (source_object_id);
+      CREATE UNIQUE INDEX IF NOT EXISTS river_segments_stage_source_object_id_uq
+        ON river_segments_stage(source_object_id);
     `);
 
     const commonQuery = {
@@ -205,34 +204,39 @@ async function runImport() {
     });
     console.log(`${countResult.count} kandidat ruas tersedia pada RBI 1:25.000.`);
 
-    let nextOffset = 0;
-    let processed = 0;
-    const importWorker = async () => {
-      while (true) {
-        const offset = nextOffset;
-        nextOffset += batchSize;
-        if (offset >= countResult.count) return;
-        const data = await fetchArcGis(riverQueryUrl, {
-        f: "geojson",
-        ...commonQuery,
-        outFields: "OBJECTID,NAMOBJ,TIPSNG,KLSSNG,FCODE,REMARK,NAMWS,NAMDAS,STATUS,WMAX,DBTMAX,SLPRT",
-        outSR: "4326",
-        returnGeometry: "true",
-        geometryPrecision: "5",
-        maxAllowableOffset: "0.00001",
-        orderByFields: "OBJECTID",
-        resultOffset: String(offset),
-        resultRecordCount: String(batchSize),
-      });
-        await insertRiverBatch(data.features);
-        processed += data.features.length;
-        console.log(`${processed}/${countResult.count} ruas sungai diterima dari BIG.`);
-      }
-    };
-    await Promise.all(Array.from({ length: 6 }, () => importWorker()));
+    const staged = await pool.query("SELECT COUNT(*)::int AS count FROM river_segments_stage");
+    if (staged.rows[0].count >= countResult.count * 0.99) {
+      console.log(`${staged.rows[0].count} ruas staging digunakan kembali.`);
+    } else {
+      let nextOffset = 0;
+      let processed = 0;
+      const importWorker = async () => {
+        while (true) {
+          const offset = nextOffset;
+          nextOffset += batchSize;
+          if (offset >= countResult.count) return;
+          const data = await fetchArcGis(riverQueryUrl, {
+            f: "geojson",
+            ...commonQuery,
+            outFields: "OBJECTID,NAMOBJ,TIPSNG,KLSSNG,FCODE,REMARK,NAMWS,NAMDAS,STATUS,WMAX,DBTMAX,SLPRT",
+            outSR: "4326",
+            returnGeometry: "true",
+            geometryPrecision: "5",
+            maxAllowableOffset: "0.00001",
+            orderByFields: "OBJECTID",
+            resultOffset: String(offset),
+            resultRecordCount: String(batchSize),
+          });
+          await insertRiverBatch(data.features);
+          processed += data.features.length;
+          console.log(`${processed}/${countResult.count} ruas sungai diterima dari BIG.`);
+        }
+      };
+      await Promise.all(Array.from({ length: 6 }, () => importWorker()));
+    }
 
     await pool.query(`
-      CREATE INDEX river_segments_stage_geom
+      CREATE INDEX IF NOT EXISTS river_segments_stage_geom
         ON river_segments_stage USING GIST(geom);
       ANALYZE river_segments_stage;
 
@@ -242,7 +246,11 @@ async function runImport() {
         SELECT s.source_object_id,
                string_agg(DISTINCT p.province, ', ' ORDER BY p.province) AS provinces
         FROM river_segments_stage s
-        JOIN java_province_boundaries p ON ST_Intersects(s.geom, p.geom)
+        JOIN indonesia_provinces p ON ST_Intersects(s.geom, p.geom)
+        WHERE p.province IN (
+          'Banten', 'DKI Jakarta', 'Daerah Istimewa Yogyakarta',
+          'Jawa Barat', 'Jawa Tengah', 'Jawa Timur'
+        )
         GROUP BY s.source_object_id
       ) matched
       WHERE r.source_object_id = matched.source_object_id;
