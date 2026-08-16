@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: floodsense-fauzora
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: VITE_MAPBOX_TOKEN
+        sync: false
+      - key: VITE_API_URL
+        value: ""
+      - key: CLIENT_ORIGINS
+        value: https://floodsense-fauzora.onrender.com
+      - key: ENABLE_SIMULATOR
+        value: "true"
+      - key: SIMULATOR_INTERVAL_MS
+        value: "5000"
+      - key: SIMULATOR_LOG_READINGS
+        value: "false"
+      - key: AUTO_IMPORT_RIVERS
+        value: "true"

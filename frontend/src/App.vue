@@ -10,7 +10,7 @@ import {
   Settings, ShieldAlert, SlidersHorizontal, Waves, X,
 } from "lucide-vue-next";
 
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3001";
+const apiUrl = import.meta.env.VITE_API_URL || window.location.origin;
 const mapboxToken = import.meta.env.VITE_MAPBOX_TOKEN || "";
 const pages = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
